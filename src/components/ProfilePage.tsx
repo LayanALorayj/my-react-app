@@ -1,30 +1,58 @@
-import { useNavigate } from "react-router-dom";
+import * as React from 'react';
+import { authService } from '../services/LoginService';
 
-function ProfilePage() {
-  const navigate = useNavigate();
-  const username = localStorage.getItem("username");
+interface ProfilePageProps {
+  onLogout: () => void;
+}
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/");
-  };
+interface UserData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  image?: string;
+  token: string;
+}
+
+const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
+  const [user, setUser] = React.useState<UserData | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    async function fetchUser() {
+      try {
+        const data = await authService.getMe();
+        setUser(data as UserData);
+        
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchUser();
+  }, []);
+
+  if (loading) {
+    return <p className="text-center my-5">Loading...</p>;
+  }
+
+  if (!user) {
+    return <p className="text-center my-5">User not found.</p>;
+  }
 
   return (
-    <div className="container my-5 text-center">
-      <div className="card mx-auto" style={{ maxWidth: "400px" }}>
-        <img
-          src="https://via.placeholder.com/150"
-          alt="Profile"
-          className="rounded-circle mx-auto mb-3"
-        />
-        <h2>{username}</h2>
-        <p>مرحبًا بك في صفحتك الشخصية 🎉</p>
-        <button className="btn btn-danger mt-3" onClick={handleLogout}>
-          تسجيل الخروج
-        </button>
+    <div className="profile-container">
+      <img src={user.image} alt="Profile" className="profile-avatar" />
+      <div className="profile-info">
+        <p><strong>First Name:</strong> {user.firstName}</p>
+        <p><strong>Last Name:</strong> {user.lastName}</p>
+        <p><strong>Email:</strong> {user.email}</p>
       </div>
+      <button className="logout-button" onClick={onLogout}>
+        Logout
+      </button>
     </div>
   );
-}
+};
 
 export default ProfilePage;

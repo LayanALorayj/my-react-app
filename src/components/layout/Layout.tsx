@@ -4,19 +4,17 @@ import Footer from './Footer';
 
 interface LayoutProps {
   children: React.ReactNode;
+  isLoggedIn: boolean;
 }
 
-const layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout: React.FC<LayoutProps> = ({ children, isLoggedIn }) => {
   return (
     <>
-      <Header />
-      <main className="main-content">
-        {/* هنا يتم عرض محتوى الصفحة المحدد (Login page أو Profile page) */}
-        {children}
-      </main>
+      <Header isLoggedIn={isLoggedIn} />
+      <main className="main-content">{children}</main>
       <Footer />
     </>
   );
 };
 
-export default layout;
+export default Layout;

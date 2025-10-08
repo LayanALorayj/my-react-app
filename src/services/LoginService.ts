@@ -1,7 +1,6 @@
-// src/services/LoginService.ts
 import { API_CONFIG } from '../constants/api';
+import { STORAGE_KEYS } from '../constants/enums';
 
-// تعريف الاستجابة المتوقعة من API
 interface LoginResponse {
   id?: number;
   username?: string;
@@ -9,87 +8,86 @@ interface LoginResponse {
   firstName?: string;
   lastName?: string;
   image?: string;
-  token?: string;
-  message?: string; // ✅ رسالة الخطأ لو فشل login
+  gender?: string;
+  accessToken?: string;
+  message?: string;
 }
 
-// واجهة المستخدم المخزنة محليًا
 export interface UserInfo {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  image?: string;
-  token: string; // Access token
+  token: string;
+}
+
+export interface UserProfile extends UserInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+  image: string;
 }
 
 export const authService = {
-  // دالة تسجيل الدخول
   async login(username: string, password: string): Promise<UserInfo> {
     const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LOGIN}`;
-
-    console.log('[authService] sending login request to', url, { username, password });
-
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }), // ✅ إرسال كل البيانات
+      body: JSON.stringify({ username, password }),
     });
 
-    // قراءة JSON من الاستجابة
-    let data: LoginResponse;
-    try {
-      data = await response.json();
-    } catch (e) {
-      console.error('[authService] response not JSON', e);
-      throw new Error('استجابة السيرفر ليست بصيغة JSON.');
+    const data: LoginResponse = await response.json();
+
+    if (!response.ok || !data.accessToken) {
+      throw new Error(data.message || 'Invalid username or password');
     }
 
-    console.log('[authService] response', response.status, data);
-
-    // التحقق من نجاح الاستجابة ووجود token
-    if (!response.ok || !data.token) {
-      const serverMessage = data.message || 'اسم المستخدم أو كلمة المرور غير صحيحة.';
-      throw new Error(serverMessage);
-    }
-
-    // إنشاء كائن المستخدم النهائي
     const userInfo: UserInfo = {
-      firstName: data.firstName || '',
-      lastName: data.lastName || '',
-      email: data.email || '',
-      image: data.image || '',
-      token: data.token as string,
+      token: data.accessToken,
     };
 
-    // حفظ المستخدم في localStorage
-    localStorage.setItem('loggedInUser', JSON.stringify(userInfo));
-    console.log('[authService] saved user to localStorage');
-
+    localStorage.setItem(STORAGE_KEYS.loggedInUser, JSON.stringify(userInfo));
     return userInfo;
   },
 
-  // جلب المستخدم المخزن من localStorage
   getUserInfo(): UserInfo | null {
-    const raw = localStorage.getItem('loggedInUser');
+    const raw = localStorage.getItem(STORAGE_KEYS.loggedInUser);
     if (!raw) return null;
     try {
-      const parsed = JSON.parse(raw) as UserInfo;
-      if (!parsed || !parsed.token) return null;
-      return parsed;
-    } catch (e) {
-      console.error('[authService] parse error', e);
+      const info = JSON.parse(raw) as UserInfo;
+      if (!info || !info.token) return null;
+      return info;
+    } catch {
       return null;
     }
   },
 
-  // تسجيل الخروج
   logout() {
-    localStorage.removeItem('loggedInUser');
+    localStorage.removeItem(STORAGE_KEYS.loggedInUser);
   },
 
-  // جلب الـ access token بسهولة
   getAccessToken(): string | null {
     const user = this.getUserInfo();
     return user ? user.token : null;
   },
-};
+
+  async getMe(): Promise<UserProfile> {
+    const user = this.getUserInfo();
+    if (!user) throw new Error('No user logged in');
+
+    const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ME}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + user.token,
+      },
+    });
+
+    if (!res.ok) throw new Error('Failed to fetch user info');
+
+    const data = await res.json();
+    return { 
+      token: user.token,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      image: data.image, 
+    };
+  }
+}
