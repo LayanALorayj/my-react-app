@@ -1,13 +1,12 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../services/AuthContext';
 
-interface HeaderProps {
-  isLoggedIn: boolean;
-}
+const Header: React.FC = () => {
+  const { user} = useAuth(); // نجيب user و logout من context
 
-const Header: React.FC<HeaderProps> = ({ isLoggedIn }) => {
-  const loginLinkContent = isLoggedIn ? "Profile" : "Login";
-  const loginLinkHref = isLoggedIn ? "/profile" : "/login";
+  const loginLinkContent = user ? "Profile" : "Login";
+  const loginLinkHref = user ? "/profile" : "/login";
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark custom-navbar">
@@ -21,7 +20,7 @@ const Header: React.FC<HeaderProps> = ({ isLoggedIn }) => {
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav ms-auto">
             <li className="nav-item">
-              <Link className={`nav-link ${isLoggedIn ? '' : 'active'}`} to={loginLinkHref}>
+              <Link className={`nav-link ${!user ? 'active' : ''}`} to={loginLinkHref}>
                 {loginLinkContent}
               </Link>
             </li>

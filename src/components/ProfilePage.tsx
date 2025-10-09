@@ -1,58 +1,32 @@
-import * as React from 'react';
-import { authService } from '../services/LoginService';
+import { useAuth } from "../services/AuthContext";
 
-interface ProfilePageProps {
-  onLogout: () => void;
-}
+export default function ProfilePage() {
+  const { user, logout } = useAuth();
 
-interface UserData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  image?: string;
-  token: string;
-}
-
-const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
-  const [user, setUser] = React.useState<UserData | null>(null);
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    async function fetchUser() {
-      try {
-        const data = await authService.getMe();
-        setUser(data as UserData);
-        
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchUser();
-  }, []);
-
-  if (loading) {
-    return <p className="text-center my-5">Loading...</p>;
-  }
-
+  // لو المستخدم غير موجود، نعرض رسالة Loading
   if (!user) {
-    return <p className="text-center my-5">User not found.</p>;
+    return <p className="text-center my-5">Loading...</p>;
   }
 
   return (
     <div className="profile-container">
-      <img src={user.image} alt="Profile" className="profile-avatar" />
-      <div className="profile-info">
-        <p><strong>First Name:</strong> {user.firstName}</p>
-        <p><strong>Last Name:</strong> {user.lastName}</p>
-        <p><strong>Email:</strong> {user.email}</p>
+      <h2 className="profile-title">Welcome, {user.firstName}</h2>
+      <div className="profile-card">
+        <img
+          className="profile-avatar"
+          src={user.image || "https://via.placeholder.com/120"}
+          alt="Profile"
+        />
+        <div className="profile-info">
+          <p><strong>First Name:</strong> {user.firstName}</p>
+          <p><strong>Last Name:</strong> {user.lastName}</p>
+          <p><strong>Email:</strong> {user.email}</p>
+        </div>
       </div>
-      <button className="logout-button" onClick={onLogout}>
+      <button className="logout-button" onClick={logout}>
         Logout
       </button>
     </div>
   );
-};
+}
 
-export default ProfilePage;
